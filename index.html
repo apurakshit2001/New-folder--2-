@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/noisejs/index.min.js" defer></script>
+    <title>Beautiful Particle Animation</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+ 
+    </style>
+</head>
+
+<body>
+    <canvas></canvas>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.querySelector('canvas');
+            const ctx = canvas.getContext('2d');
+            const noise = new Noise(Math.random());
+
+            const particleCount = 10000;
+            const step = 2;
+            const gridSize = 80;
+            const particleMaxAge = 150;
+            const particleSize = 1.5;
+            const maxDistance = 100;
+            const particles = [];
+            let mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+
+            // Update canvas size dynamically
+            function updateCanvasSize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            updateCanvasSize();
+            window.addEventListener('resize', updateCanvasSize);
+
+            // Capture mouse movement
+            document.body.addEventListener('mousemove', (e) => {
+                mouse.x = e.clientX;
+                mouse.y = e.clientY;
+            });
+
+            // Calculate Perlin noise
+            function calcPerlin(x, y) {
+                x /= gridSize;
+                y /= gridSize;
+                return noise.perlin2(x, y); // Use 2D Perlin noise
+            }
+
+            // Particle class
+            class Particle {
+                constructor() {
+                    this.reset();
+                }
+
+                reset() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.age = Math.random() * particleMaxAge;
+                    this.color = `hsl(${Math.random() * 360}, 100%, 75%)`;
+                }
+
+                update() {
+                    let perlin = calcPerlin(this.x, this.y);
+                    perlin = (perlin + 1) * Math.PI * 2; // Map noise to 0-2π
+                    this.x += step * Math.cos(perlin);
+                    this.y += step * Math.sin(perlin);
+
+                    // Attraction towards the mouse if far away
+                    const dist = Math.sqrt((mouse.x - this.x) ** 2 + (mouse.y - this.y) ** 2);
+                    if (dist > maxDistance) {
+                        const attraction = 0.1; // Strength of attraction
+                        this.x += (mouse.x - this.x) * attraction;
+                        this.y += (mouse.y - this.y) * attraction;
+                    }
+
+                    // Age the particle and reset if too old
+                    this.age--;
+                    if (this.age < 0) {
+                        this.reset();
+                    }
+                }
+
+                draw() {
+                    ctx.beginPath();
+                    ctx.fillStyle = this.color;
+                    ctx.arc(this.x, this.y, particleSize, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+            }
+
+            // Initialize particles
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle());
+            }
+
+            // Animation loop
+            function animate() {
+                // Create a fading trail effect
+                ctx.fillStyle = 'rgba(15, 32, 39, 0.1)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                particles.forEach((particle) => {
+                    particle.update();
+                    particle.draw();
+                });
+
+                requestAnimationFrame(animate);
+            }
+
+            // Start animation
+            animate();
+        });
+    </script>
+</body>
+
+</html>
